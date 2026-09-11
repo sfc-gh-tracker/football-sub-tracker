@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Flag Football Sub Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: #f5f5f5; color: #1a1a1a;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+
+  /* --- CHECK-IN SCREEN --- */
+  #checkin-screen, #game-screen, #rotation-modal { display: none; }
+  #checkin-screen.active, #game-screen.active { display: flex; }
+  #rotation-modal.active { display: flex; }
+
+  #checkin-screen {
+    flex-direction: column; align-items: center; justify-content: flex-start;
+    height: 100%; padding: 20px;
+  }
+  .checkin-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .checkin-logo { height: 48px; width: auto; }
+  .checkin-title { font-size: 28px; font-weight: 700; }
+  .checkin-subtitle { font-size: 16px; color: #666; margin-bottom: 20px; }
+  .checkin-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px; width: 100%; max-width: 500px;
+  }
+  .checkin-card {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border: 3px solid #ddd; border-radius: 16px;
+    padding: 16px 18px; font-size: 20px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    font-family: inherit; color: inherit; text-align: left;
+    -webkit-appearance: none; appearance: none;
+    width: 100%;
+  }
+  .checkin-card.checked { border-color: #34a853; background: #e8f5e9; }
+  .checkin-card .number {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #eee; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; flex-shrink: 0;
+  }
+  .checkin-card.checked .number { background: #34a853; color: #fff; }
+  .checkin-count { margin-top: 18px; font-size: 18px; font-weight: 600; color: #444; }
+  .timer-setting { margin-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 16px; }
+  .timer-setting select {
+    font-size: 18px; padding: 6px 12px; border-radius: 8px; border: 2px solid #ccc;
+    background: #fff;
+  }
+  .btn-start {
+    margin-top: 20px; padding: 18px 60px; font-size: 22px; font-weight: 700;
+    background: #1a73e8; color: #fff; border: none; border-radius: 14px;
+    cursor: pointer; opacity: 0.4; pointer-events: none; transition: opacity 0.2s;
+  }
+  .btn-start.enabled { opacity: 1; pointer-events: auto; }
+  .btn-start.enabled:active { background: #1558b0; }
+
+  /* --- GAME SCREEN --- */
+  #game-screen {
+    flex-direction: column; height: 100%; padding: 12px 16px;
+  }
+
+  /* Timer bar */
+  .timer-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; padding: 10px 0; flex-shrink: 0;
+  }
+  .game-logo { height: 36px; width: auto; }
+  .round-label { font-size: 18px; font-weight: 700; color: #555; }
+  .timer-display {
+    font-size: 80px; font-weight: 800; font-variant-numeric: tabular-nums;
+    font-family: 'SF Mono', 'Menlo', monospace; line-height: 1;
+    min-width: 200px; text-align: center;
+  }
+  .timer-display.warning { color: #e8710a; }
+  .timer-display.critical { color: #d93025; }
+  .timer-buttons { display: flex; gap: 10px; }
+  .btn-timer {
+    padding: 12px 22px; font-size: 16px; font-weight: 700;
+    border: 2px solid #ccc; border-radius: 10px; background: #fff;
+    cursor: pointer; min-width: 80px;
+  }
+  .btn-timer:active { background: #eee; }
+  .btn-timer.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+  .btn-timer.primary:active { background: #1558b0; }
+  .btn-timer.rotate { background: #e8710a; color: #fff; border-color: #e8710a; }
+  .btn-timer.rotate:active { background: #c25e08; }
+
+  /* Player sections */
+  .section-label {
+    font-size: 15px; font-weight: 700; color: #888; text-transform: uppercase;
+    letter-spacing: 1px; margin: 8px 0 6px 4px;
+  }
+  .field-section { flex: 1; min-height: 0; }
+  .bench-section { flex-shrink: 0; }
+  .player-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .player-card {
+    display: flex; flex-direction: column; align-items: center;
+    background: #fff; border: 3px solid #34a853; border-radius: 14px;
+    padding: 10px 14px; min-width: 100px; flex: 1;
+    max-width: 140px;
+  }
+  .player-card.bench { border-color: #e8710a; background: #fff8f0; }
+  .player-card .p-name { font-size: 16px; font-weight: 700; text-align: center; line-height: 1.2; }
+  .player-card .p-time { font-size: 14px; color: #666; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .player-card .p-number {
+    font-size: 12px; font-weight: 700; color: #fff; background: #34a853;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+  }
+  .player-card.bench .p-number { background: #e8710a; }
+
+  .game-footer {
+    display: flex; justify-content: center; padding: 8px 0; flex-shrink: 0;
+  }
+  .btn-end {
+    padding: 10px 30px; font-size: 15px; font-weight: 600;
+    background: #fff; border: 2px solid #d93025; color: #d93025;
+    border-radius: 10px; cursor: pointer;
+  }
+  .btn-end:active { background: #fce8e6; }
+
+  /* --- ROTATION MODAL --- */
+  #rotation-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-box {
+    background: #fff; border-radius: 20px; padding: 24px 28px;
+    max-width: 440px; width: 90%; text-align: center;
+  }
+  .modal-title { font-size: 24px; font-weight: 800; margin-bottom: 16px; }
+  .swap-section { margin-bottom: 14px; }
+  .swap-label { font-size: 14px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 6px; }
+  .swap-names { font-size: 20px; font-weight: 700; }
+  .swap-names.out { color: #d93025; }
+  .swap-names.in { color: #34a853; }
+  .swap-arrow { font-size: 28px; color: #888; margin: 6px 0; }
+  .modal-buttons { display: flex; gap: 12px; margin-top: 18px; justify-content: center; }
+  .btn-modal {
+    padding: 14px 36px; font-size: 18px; font-weight: 700;
+    border: none; border-radius: 12px; cursor: pointer;
+  }
+  .btn-confirm { background: #34a853; color: #fff; }
+  .btn-confirm:active { background: #2d8f47; }
+  .btn-skip { background: #eee; color: #444; }
+  .btn-skip:active { background: #ddd; }
+
+  /* --- NO-SUBS STATE --- */
+  .no-subs-msg {
+    font-size: 16px; color: #888; font-style: italic; padding: 8px 0;
+  }
+
+  /* Landscape tweaks */
+  @media (orientation: landscape) {
+    #checkin-screen { padding: 12px 20px; }
+    .checkin-grid { grid-template-columns: repeat(4, 1fr); max-width: 700px; }
+    .checkin-title { font-size: 24px; }
+    .timer-display { font-size: 72px; }
+    .player-card { padding: 8px 10px; }
+  }
+  @media (max-height: 700px) {
+    .timer-display { font-size: 56px; }
+    .checkin-card { padding: 12px 14px; font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CHECK-IN SCREEN -->
+<div id="checkin-screen" class="active">
+  <div class="checkin-header">
+    <img class="checkin-logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNjMuNzE5OTciIHdpZHRoPSIxNDMuOTM4MyIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHZpZXdCb3g9IjAgMCAxNDMuOTM4MyA2My43MTk5NyI+PHBhdGggZD0iTTEyMC42NTgzLDUyLjJhMTA4LjMxNzI4LDEwOC4zMTcyOCwwLDAsMC0xOC44NC0xLjU2MDA2aC04Ni41MmMtNS40LDAtMTEuMDQsMC0xMy44LTQuNDM5OTQtMy00LjQ0MDA2LTEuMzItOC44OCwzLjQ4LTE3LjY0LjM2LS43MiwxNS4yNC0yOC41NiwxNS4yNC0yOC41NmEyNy4xNjg4MSwyNy4xNjg4MSwwLDAsMCwzLDMuMTJjMS41NiwxLjIsMy4xMiwxLjgsNy4yLDEuOCw3LjMyLDAsNTQuNzItLjEyLDU1LjItLjEyLDkuNiwwLDE5LjMyLjk2LDI1LjU2LDcuOTIsMy4zNi4zNiwxMy44LDEuNjgsMjIuNTYsNS44OCw1LjA0LDIuNCw4LjQsNiw5LjcyLDEwLjQ0YTE2LjEwOTg0LDE2LjEwOTg0LDAsMCwxLC40OCw0LjJjMCw0LjItMS41Niw4Ljg4LTQuNTYsMTMuOC02LjYsMTAuMi0xMi42LDEzLjgtMTIuODQsMTMuOTJhMTQuNzc2NzYsMTQuNzc2NzYsMCwwLDEtNy4zMiwyLjc2LDI0LjIwMTIsMjQuMjAxMiwwLDAsMCw0LjMyLTcuMzJDMTI0LjYxODI5LDUyLjY4LDEyMC42NTgzLDUyLjIsMTIwLjY1ODMsNTIuMloiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTMyLjY1ODMsMjAuODhjLTkuOTYtNC44LTIyLjY4LTUuNzYtMjIuNjgtNS43Ni01LjUyLTYuODQtMTQuODgtNy44LTI0LjM2LTcuOCwwLDAtNDcuNzYuMTItNTUuMi4xMi04LjY0LDAtOS40OC0zLjQ4LTkuNDgtMy40OEw5LjI5ODMsMjUuNjhoMzAuMTJjOS40OCwwLDkuOTYtLjk2LDE2LjItNS42NCw2LjcyLTQuOTIsMTItNi42LDE4LjM2LTYuNiw2LjI0LDAsMTAuNDQsMS4zMTk5NSwxNy41Miw0LjQ0LDYuOTYsMy4xMiwxMC42OCw0LjY4LDE0Ljg4LDIuODc5OTQsMCwwLTMuMjQsNC40NDAwNi0xMy4yLjI0MDA1LTkuOTYtNC4wOC0xMi42LTUuMDQtMTguNzItNS4wNC01Ljg4LDAtMTIuNzIsMi44OC0yMS4yNCwxMS40bDEwLjIsOC4xNnMtMi40LDMuNzItMy45Niw2LTEuNDQsMy44NC0uNiw1LjA0Yy44NCwxLjA4LDEuOTIsMS41Niw1LjY0LDEuNTZoMzcuMzJhMTE0LjAzOTczLDExNC4wMzk3MywwLDAsMSwxOS4zMiwxLjY4YzkuNiwxLjkyLDMuMzYsOS45NiwzLjM2LDkuOTZzNi40OC00LjIsMTIuNzItMTQuMTZDMTQ0LjI5ODI4LDM0LjU2LDE0Mi40OTgyOSwyNS41NiwxMzIuNjU4MywyMC44OFoiIGZpbGw9IiMwMjQiLz48cGF0aCBkPSJNMTE1LjEzODI5LDIyLjU2Yy00LjQ0LTEuMDgtLjYtMy42LS42LTMuNmExMy4xMjM4MSwxMy4xMjM4MSwwLDAsMC05LjQ4LDguMDRjLS4xMi4yNC0uMjQuMzYtLjM2LjYtMy42LDcuMi02Ljg0LDYuODQtMTIuOTYsNi44NGgtMTAuNDRjLTguNTIsMC0xMi40OCw0LjItMTYuNTYsMTEuNGg0LjhjNC40NC02LjYsNy42OC04LjI4LDE2LjQ0LTguNzYsMTkuOCwwLDM1LjUyLDUuNjQsNDMuOTIsOS45NkMxNDEuNzc4MjksMjcuMTIsMTI0LjEzODI5LDIzLjg3OTk0LDExNS4xMzgyOSwyMi41NloiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNNzguMjk4MjksNDUuNzJjMi4xNi0zLjM2LDYuNzItNC40NCwxMy45Mi00LjA4LDE4LDEuMDgsMjguMzIsNC41NjAwNiwzNi4yNCw3LjU2MDA2LTkuODQtNS43Ni0yNy40OC05Ljk2LTM5LjcyLTkuOTYtNS44OCwwLTExLjE2LDEuMDgtMTQuMTYsNi40OFoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNOTcuNDk4MjksMjUuOTJjLTIuMjgsMy4zNi01LjQsNC40NC0xNC4xNiwzLjg0LTEwLjA4LS43Mi03LjQ0LTUuMDQtNi4zNi03LjA4aDBjLjM2LS42Ljg0LTEuNjgsMS40NC0yLjY0LTcuOC0uNDgtMTMuNDQsNS41Mi0xMy40NCw1LjUyLDUuNzYsNS43Niw5LjYsNi4zNiwxNC44OCw2LjM2aDkuODRjOS4xMiwwLDExLjI4LTQuMDgsMTIuMTItNkExMy4wMjgyOSwxMy4wMjgyOSwwLDAsMSw5Ny40OTgyOSwyNS45MloiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNOTMuMDU4MjksMjQuOTZhMi4wMjc1LDIuMDI3NSwwLDAsMS0uNi0uMjQsNC4zNzgxMSw0LjM3ODExLDAsMCwxLTMuODQsMS4zMmMtMi4wNC0uMjQtMy4xMi0xLjY4LTIuNTItMy4xMmExLjcwNTQ0LDEuNzA1NDQsMCwwLDEsLjI0LS43MmMtLjk2LS4zNi0yLjA0LS43Mi0zLTEuMDgtMi4wNCwzLjI0LTMuMTIsNS40LDMuODQsNiw0LjMyLjM2LDUuNTItLjM2LDYuNDgtMS45MkM5My40MTgyOSwyNS4wOCw5My4yOTgyOCwyNS4wOCw5My4wNTgyOSwyNC45NloiIGZpbGw9IiM2OWJlMjgiLz48cGF0aCBkPSJNNTcuODk4MywzNy40NGMtMy42LDYuMjQtNS4wNCw3LjY4LTIuNTIsMTAuNjhoLTQwLjA4Yy02LDAtOS44NC0uMjQtMTEuNzYtMy4yNHMtMS41Ni01Ljc2LDMuNi0xNS4xMjAwNmgzNC4wOGM1Ljg4LDAsNy40NC4zNiwxMC41NiwyLjc2QzU1LjAxODI5LDM1LjA0LDU3Ljg5ODMsMzcuNDQsNTcuODk4MywzNy40NFoiIGZpbGw9IiNhNWFjYWYiLz48L3N2Zz4=" alt="Seahawks">
+    <div class="checkin-title">Flag Football Sub Tracker</div>
+  </div>
+  <div class="checkin-subtitle">Tap players who are here today</div>
+  <div class="checkin-grid" id="checkin-grid">
+    <button type="button" class="checkin-card" data-id="1" onclick="tapCheckin(this,1)"><div class="number">1</div><div>Rio</div></button>
+    <button type="button" class="checkin-card" data-id="2" onclick="tapCheckin(this,2)"><div class="number">2</div><div>Walt</div></button>
+    <button type="button" class="checkin-card" data-id="3" onclick="tapCheckin(this,3)"><div class="number">3</div><div>Kellan</div></button>
+    <button type="button" class="checkin-card" data-id="4" onclick="tapCheckin(this,4)"><div class="number">4</div><div>Brooks</div></button>
+    <button type="button" class="checkin-card" data-id="5" onclick="tapCheckin(this,5)"><div class="number">5</div><div>Liam</div></button>
+    <button type="button" class="checkin-card" data-id="6" onclick="tapCheckin(this,6)"><div class="number">6</div><div>Harvey</div></button>
+    <button type="button" class="checkin-card" data-id="7" onclick="tapCheckin(this,7)"><div class="number">7</div><div>Braun</div></button>
+    <button type="button" class="checkin-card" data-id="8" onclick="tapCheckin(this,8)"><div class="number">8</div><div>Phoenix</div></button>
+  </div>
+  <div class="checkin-count" id="checkin-count">0 of 8 players checked in</div>
+  <div class="timer-setting">
+    <label for="round-time">Round timer:</label>
+    <select id="round-time">
+      <option value="120">2 min</option>
+      <option value="150">2:30</option>
+      <option value="180" selected>3 min</option>
+      <option value="210">3:30</option>
+      <option value="240">4 min</option>
+    </select>
+  </div>
+  <button class="btn-start" id="btn-start" onclick="startGame()">Start Game</button>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="timer-bar">
+    <span class="round-label" id="round-label">ROUND 1</span>
+    <span class="timer-display" id="timer-display">3:00</span>
+    <div class="timer-buttons">
+      <button class="btn-timer primary" id="btn-pause" onclick="togglePause()">Start</button>
+      <button class="btn-timer rotate" onclick="triggerRotation()">Rotate</button>
+    </div>
+  </div>
+  <div class="field-section">
+    <div class="section-label" id="field-label">On Field (5)</div>
+    <div class="player-grid" id="field-grid"></div>
+  </div>
+  <div class="bench-section">
+    <div class="section-label" id="bench-label">Bench (3)</div>
+    <div class="player-grid" id="bench-grid"></div>
+  </div>
+  <div class="game-footer">
+    <button class="btn-end" onclick="endGame()">End Game</button>
+  </div>
+</div>
+
+<!-- ROTATION MODAL -->
+<div id="rotation-modal">
+  <div class="modal-box">
+    <div class="modal-title">Substitution</div>
+    <div class="swap-section">
+      <div class="swap-label">Coming Off</div>
+      <div class="swap-names out" id="swap-out"></div>
+    </div>
+    <div class="swap-arrow">&#8595;</div>
+    <div class="swap-section">
+      <div class="swap-label">Going In</div>
+      <div class="swap-names in" id="swap-in"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn-modal btn-skip" onclick="skipRotation()">Skip</button>
+      <button class="btn-modal btn-confirm" onclick="confirmRotation()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ES5-safe for iPad local file compatibility
+var ROSTER = [
+  { id: 1, name: "Rio Carling", number: 1 },
+  { id: 2, name: "Walt Roland Cheney", number: 2 },
+  { id: 3, name: "Kellan Fix", number: 3 },
+  { id: 4, name: "Brooks Hedin", number: 4 },
+  { id: 5, name: "Liam Pantelakis", number: 5 },
+  { id: 6, name: "Harvey Racker", number: 6 },
+  { id: 7, name: "Braun Snoke", number: 7 },
+  { id: 8, name: "Phoenix West", number: 8 }
+];
+var ON_FIELD_COUNT = 5;
+
+// State - use object instead of Set for max compat
+var checkedIn = {};  // id -> true/false
+var checkedInCount = 0;
+var onField = [];
+var bench = [];
+var fieldTime = {};
+var benchTime = {};
+var roundSeconds = 180;
+var timeLeft = 180;
+var timerInterval = null;
+var isPaused = true;
+var roundNumber = 1;
+var pendingSubOut = [];
+var pendingSubIn = [];
+var audioCtx = null;
+
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    for (var i = 0; i < 3; i++) {
+      var osc = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      osc.type = "square";
+      g.gain.value = 0.3;
+      var t = audioCtx.currentTime + i * 0.25;
+      osc.start(t);
+      osc.stop(t + 0.15);
+    }
+  } catch (e) {}
+}
+
+function firstName(name) {
+  return name.split(" ")[0];
+}
+
+function getPlayer(id) {
+  for (var i = 0; i < ROSTER.length; i++) {
+    if (ROSTER[i].id === id) return ROSTER[i];
+  }
+  return null;
+}
+
+function arrCopy(arr) {
+  var out = [];
+  for (var i = 0; i < arr.length; i++) out.push(arr[i]);
+  return out;
+}
+
+function arrIncludes(arr, val) {
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] === val) return true;
+  }
+  return false;
+}
+
+function arrFilter(arr, fn) {
+  var out = [];
+  for (var i = 0; i < arr.length; i++) {
+    if (fn(arr[i])) out.push(arr[i]);
+  }
+  return out;
+}
+
+function padTwo(n) {
+  return n < 10 ? "0" + n : "" + n;
+}
+
+function formatTime(secs) {
+  var m = Math.floor(secs / 60);
+  var s = secs % 60;
+  return m + ":" + padTwo(s);
+}
+
+function tapCheckin(card, id) {
+  if (checkedIn[id]) {
+    checkedIn[id] = false;
+    checkedInCount--;
+    card.className = "checkin-card";
+  } else {
+    checkedIn[id] = true;
+    checkedInCount++;
+    card.className = "checkin-card checked";
+  }
+  updateCheckinCount();
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+}
+
+function updateCheckinCount() {
+  document.getElementById("checkin-count").textContent = checkedInCount + " of " + ROSTER.length + " players checked in";
+  var btn = document.getElementById("btn-start");
+  if (checkedInCount >= ON_FIELD_COUNT) {
+    btn.className = "btn-start enabled";
+  } else {
+    btn.className = "btn-start";
+  }
+}
+
+function startGame() {
+  if (checkedInCount < ON_FIELD_COUNT) return;
+  roundSeconds = parseInt(document.getElementById("round-time").value);
+  timeLeft = roundSeconds;
+  roundNumber = 1;
+  isPaused = true;
+
+  var players = [];
+  for (var i = 0; i < ROSTER.length; i++) {
+    if (checkedIn[ROSTER[i].id]) players.push(ROSTER[i].id);
+  }
+  onField = players.slice(0, ON_FIELD_COUNT);
+  bench = players.slice(ON_FIELD_COUNT);
+
+  fieldTime = {};
+  benchTime = {};
+  for (var j = 0; j < players.length; j++) {
+    fieldTime[players[j]] = 0;
+    benchTime[players[j]] = 0;
+  }
+
+  document.getElementById("checkin-screen").className = "";
+  document.getElementById("game-screen").className = "active";
+  document.getElementById("btn-pause").textContent = "Start";
+  renderGame();
+}
+
+function togglePause() {
+  if (isPaused) {
+    isPaused = false;
+    document.getElementById("btn-pause").textContent = "Pause";
+    timerInterval = setInterval(tick, 1000);
+  } else {
+    isPaused = true;
+    document.getElementById("btn-pause").textContent = "Resume";
+    clearInterval(timerInterval);
+  }
+}
+
+function tick() {
+  var i;
+  for (i = 0; i < onField.length; i++) fieldTime[onField[i]]++;
+  for (i = 0; i < bench.length; i++) benchTime[bench[i]]++;
+
+  timeLeft--;
+  renderGame();
+
+  if (timeLeft <= 0) {
+    clearInterval(timerInterval);
+    isPaused = true;
+    document.getElementById("btn-pause").textContent = "Resume";
+    playBeep();
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+    if (bench.length > 0) triggerRotation();
+  }
+}
+
+function renderTimer() {
+  var display = document.getElementById("timer-display");
+  var m = Math.floor(Math.max(0, timeLeft) / 60);
+  var s = Math.max(0, timeLeft) % 60;
+  display.textContent = m + ":" + padTwo(s);
+  display.className = "timer-display";
+  if (timeLeft <= 15) display.className = "timer-display critical";
+  else if (timeLeft <= 30) display.className = "timer-display warning";
+  document.getElementById("round-label").textContent = "ROUND " + roundNumber;
+}
+
+function renderGame() {
+  renderTimer();
+  var fieldGrid = document.getElementById("field-grid");
+  var benchGrid = document.getElementById("bench-grid");
+  document.getElementById("field-label").textContent = "On Field (" + onField.length + ")";
+  document.getElementById("bench-label").textContent = "Bench (" + bench.length + ")";
+
+  var fieldSorted = arrCopy(onField).sort(function(a, b) { return fieldTime[b] - fieldTime[a]; });
+  var html = "";
+  var i, p;
+  for (i = 0; i < fieldSorted.length; i++) {
+    p = getPlayer(fieldSorted[i]);
+    html += '<div class="player-card">' +
+      '<div class="p-number">' + p.number + '</div>' +
+      '<div class="p-name">' + firstName(p.name) + '</div>' +
+      '<div class="p-time">' + formatTime(fieldTime[p.id]) + '</div>' +
+      '</div>';
+  }
+  fieldGrid.innerHTML = html;
+
+  html = "";
+  if (bench.length === 0) {
+    html = '<div class="no-subs-msg">All players on field</div>';
+  } else {
+    var benchSorted = arrCopy(bench).sort(function(a, b) { return benchTime[b] - benchTime[a]; });
+    for (i = 0; i < benchSorted.length; i++) {
+      p = getPlayer(benchSorted[i]);
+      html += '<div class="player-card bench">' +
+        '<div class="p-number">' + p.number + '</div>' +
+        '<div class="p-name">' + firstName(p.name) + '</div>' +
+        '<div class="p-time">' + formatTime(benchTime[p.id]) + '</div>' +
+        '</div>';
+    }
+  }
+  benchGrid.innerHTML = html;
+}
+
+function triggerRotation() {
+  if (bench.length === 0) return;
+
+  if (!isPaused) {
+    clearInterval(timerInterval);
+    isPaused = true;
+    document.getElementById("btn-pause").textContent = "Resume";
+  }
+
+  var numSubs = bench.length;
+  var fieldByTime = arrCopy(onField).sort(function(a, b) { return fieldTime[b] - fieldTime[a]; });
+  pendingSubOut = fieldByTime.slice(0, numSubs);
+  var benchByWait = arrCopy(bench).sort(function(a, b) { return benchTime[b] - benchTime[a]; });
+  pendingSubIn = benchByWait.slice(0, numSubs);
+
+  var outNames = [], inNames = [];
+  var i;
+  for (i = 0; i < pendingSubOut.length; i++) outNames.push(firstName(getPlayer(pendingSubOut[i]).name));
+  for (i = 0; i < pendingSubIn.length; i++) inNames.push(firstName(getPlayer(pendingSubIn[i]).name));
+  document.getElementById("swap-out").textContent = outNames.join(", ");
+  document.getElementById("swap-in").textContent = inNames.join(", ");
+  document.getElementById("rotation-modal").className = "active";
+}
+
+function confirmRotation() {
+  onField = arrFilter(onField, function(id) { return !arrIncludes(pendingSubOut, id); });
+  bench = arrFilter(bench, function(id) { return !arrIncludes(pendingSubIn, id); });
+  var i;
+  for (i = 0; i < pendingSubIn.length; i++) onField.push(pendingSubIn[i]);
+  for (i = 0; i < pendingSubOut.length; i++) bench.push(pendingSubOut[i]);
+  for (i = 0; i < pendingSubOut.length; i++) benchTime[pendingSubOut[i]] = 0;
+
+  pendingSubOut = [];
+  pendingSubIn = [];
+  roundNumber++;
+  timeLeft = roundSeconds;
+
+  document.getElementById("rotation-modal").className = "";
+  renderGame();
+}
+
+function skipRotation() {
+  pendingSubOut = [];
+  pendingSubIn = [];
+  roundNumber++;
+  timeLeft = roundSeconds;
+  document.getElementById("rotation-modal").className = "";
+  renderGame();
+}
+
+function endGame() {
+  if (!confirm("End the game?")) return;
+  clearInterval(timerInterval);
+  isPaused = true;
+  document.getElementById("game-screen").className = "";
+  document.getElementById("checkin-screen").className = "active";
+  checkedIn = {};
+  checkedInCount = 0;
+  var cards = document.querySelectorAll(".checkin-card");
+  for (var i = 0; i < cards.length; i++) cards[i].className = "checkin-card";
+  updateCheckinCount();
+}
+
+// INIT
+updateCheckinCount();
+document.getElementById("checkin-screen").className = "active";
+</script>
+</body>
+</html>
