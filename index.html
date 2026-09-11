@@ -14,7 +14,7 @@
     background: #f5f5f5; color: #1a1a1a;
     -webkit-user-select: none; user-select: none;
     touch-action: manipulation;
-    overflow: hidden;
+    overflow-x: hidden; overflow-y: auto;
   }
 
   /* --- CHECK-IN SCREEN --- */
@@ -24,20 +24,20 @@
 
   #checkin-screen {
     flex-direction: column; align-items: center; justify-content: flex-start;
-    height: 100%; padding: 20px;
+    min-height: 100%; padding: 16px 12px;
   }
-  .checkin-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-  .checkin-logo { height: 48px; width: auto; }
-  .checkin-title { font-size: 28px; font-weight: 700; }
-  .checkin-subtitle { font-size: 16px; color: #666; margin-bottom: 20px; }
+  .checkin-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .checkin-logo { height: 40px; width: auto; }
+  .checkin-title { font-size: 22px; font-weight: 700; }
+  .checkin-subtitle { font-size: 14px; color: #666; margin-bottom: 12px; }
   .checkin-grid {
     display: grid; grid-template-columns: repeat(2, 1fr);
-    gap: 12px; width: 100%; max-width: 500px;
+    gap: 8px; width: 100%; max-width: 500px;
   }
   .checkin-card {
-    display: flex; align-items: center; gap: 14px;
-    background: #fff; border: 3px solid #ddd; border-radius: 16px;
-    padding: 16px 18px; font-size: 20px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 3px solid #ddd; border-radius: 12px;
+    padding: 12px 14px; font-size: 17px; font-weight: 600;
     cursor: pointer; transition: all 0.15s;
     font-family: inherit; color: inherit; text-align: left;
     -webkit-appearance: none; appearance: none;
@@ -45,19 +45,19 @@
   }
   .checkin-card.checked { border-color: #34a853; background: #e8f5e9; }
   .checkin-card .number {
-    width: 40px; height: 40px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%;
     background: #eee; display: flex; align-items: center; justify-content: center;
-    font-size: 18px; font-weight: 700; flex-shrink: 0;
+    font-size: 16px; font-weight: 700; flex-shrink: 0;
   }
   .checkin-card.checked .number { background: #34a853; color: #fff; }
-  .checkin-count { margin-top: 18px; font-size: 18px; font-weight: 600; color: #444; }
-  .timer-setting { margin-top: 10px; display: flex; align-items: center; gap: 10px; font-size: 16px; }
+  .checkin-count { margin-top: 12px; font-size: 16px; font-weight: 600; color: #444; }
+  .timer-setting { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .timer-setting select {
-    font-size: 18px; padding: 6px 12px; border-radius: 8px; border: 2px solid #ccc;
+    font-size: 16px; padding: 4px 10px; border-radius: 8px; border: 2px solid #ccc;
     background: #fff;
   }
   .btn-start {
-    margin-top: 20px; padding: 18px 60px; font-size: 22px; font-weight: 700;
+    margin-top: 14px; padding: 14px 50px; font-size: 20px; font-weight: 700;
     background: #1a73e8; color: #fff; border: none; border-radius: 14px;
     cursor: pointer; opacity: 0.4; pointer-events: none; transition: opacity 0.2s;
   }
@@ -66,28 +66,28 @@
 
   /* --- GAME SCREEN --- */
   #game-screen {
-    flex-direction: column; height: 100%; padding: 12px 16px;
+    flex-direction: column; min-height: 100%; padding: 8px 10px;
   }
 
   /* Timer bar */
   .timer-bar {
-    display: flex; align-items: center; justify-content: center;
-    gap: 16px; padding: 10px 0; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 4px 0 8px; flex-shrink: 0;
   }
   .game-logo { height: 36px; width: auto; }
-  .round-label { font-size: 18px; font-weight: 700; color: #555; }
+  .round-label { font-size: 15px; font-weight: 700; color: #555; }
   .timer-display {
-    font-size: 80px; font-weight: 800; font-variant-numeric: tabular-nums;
+    font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums;
     font-family: 'SF Mono', 'Menlo', monospace; line-height: 1;
-    min-width: 200px; text-align: center;
+    text-align: center;
   }
   .timer-display.warning { color: #e8710a; }
   .timer-display.critical { color: #d93025; }
-  .timer-buttons { display: flex; gap: 10px; }
+  .timer-buttons { display: flex; gap: 8px; margin-top: 6px; }
   .btn-timer {
-    padding: 12px 22px; font-size: 16px; font-weight: 700;
+    padding: 10px 18px; font-size: 15px; font-weight: 700;
     border: 2px solid #ccc; border-radius: 10px; background: #fff;
-    cursor: pointer; min-width: 80px;
+    cursor: pointer; min-width: 70px;
   }
   .btn-timer:active { background: #eee; }
   .btn-timer.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
@@ -97,35 +97,34 @@
 
   /* Player sections */
   .section-label {
-    font-size: 15px; font-weight: 700; color: #888; text-transform: uppercase;
-    letter-spacing: 1px; margin: 8px 0 6px 4px;
+    font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase;
+    letter-spacing: 1px; margin: 6px 0 4px 2px;
   }
-  .field-section { flex: 1; min-height: 0; }
+  .field-section { flex-shrink: 0; }
   .bench-section { flex-shrink: 0; }
   .player-grid {
-    display: flex; flex-wrap: wrap; gap: 8px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
   }
   .player-card {
     display: flex; flex-direction: column; align-items: center;
-    background: #fff; border: 3px solid #34a853; border-radius: 14px;
-    padding: 10px 14px; min-width: 100px; flex: 1;
-    max-width: 140px;
+    background: #fff; border: 2px solid #34a853; border-radius: 10px;
+    padding: 6px 4px;
   }
   .player-card.bench { border-color: #e8710a; background: #fff8f0; }
-  .player-card .p-name { font-size: 16px; font-weight: 700; text-align: center; line-height: 1.2; }
-  .player-card .p-time { font-size: 14px; color: #666; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .player-card .p-name { font-size: 14px; font-weight: 700; text-align: center; line-height: 1.1; }
+  .player-card .p-time { font-size: 12px; color: #666; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .player-card .p-number {
-    font-size: 12px; font-weight: 700; color: #fff; background: #34a853;
-    width: 24px; height: 24px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+    font-size: 11px; font-weight: 700; color: #fff; background: #34a853;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 2px;
   }
   .player-card.bench .p-number { background: #e8710a; }
 
   .game-footer {
-    display: flex; justify-content: center; padding: 8px 0; flex-shrink: 0;
+    display: flex; justify-content: center; padding: 6px 0 12px; flex-shrink: 0;
   }
   .btn-end {
-    padding: 10px 30px; font-size: 15px; font-weight: 600;
+    padding: 8px 24px; font-size: 14px; font-weight: 600;
     background: #fff; border: 2px solid #d93025; color: #d93025;
     border-radius: 10px; cursor: pointer;
   }
@@ -167,12 +166,18 @@
     #checkin-screen { padding: 12px 20px; }
     .checkin-grid { grid-template-columns: repeat(4, 1fr); max-width: 700px; }
     .checkin-title { font-size: 24px; }
+    .timer-bar { flex-direction: row; gap: 16px; }
     .timer-display { font-size: 72px; }
     .player-card { padding: 8px 10px; }
+    .player-grid { grid-template-columns: repeat(5, 1fr); }
   }
-  @media (max-height: 700px) {
-    .timer-display { font-size: 56px; }
-    .checkin-card { padding: 12px 14px; font-size: 18px; }
+  /* Taller phones / iPads in portrait */
+  @media (min-height: 800px) and (orientation: portrait) {
+    .timer-display { font-size: 72px; }
+    .checkin-card { padding: 14px 16px; font-size: 19px; }
+    .player-card { padding: 10px 8px; }
+    .player-card .p-name { font-size: 16px; }
+    .section-label { margin: 10px 0 6px 4px; }
   }
 </style>
 </head>
